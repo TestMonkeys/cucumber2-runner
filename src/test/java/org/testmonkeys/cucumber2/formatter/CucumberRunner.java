@@ -12,8 +12,8 @@ import org.junit.runner.RunWith;
         features = {"src/test/resources/features"},
         glue = {"org.testmonkeys.cucumber2.formatter"},
         plugin = {
-//                "org.testmonkeys.cucumber2.formatter.CucumberLogsFormatter",
-                "json:target/json-report/cucumber.json"
+                "org.testmonkeys.cucumber2.formatter.JsonFeatureFormatter:target/cucumbertet/"
+//                "json:target/json-report/cucumber.json"
 //                "org.testmonkeys.cucumber.ext.formatters.json.PerFeatureFormatter:target/json-report",
         }
 )
