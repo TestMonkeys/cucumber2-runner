@@ -16,7 +16,6 @@ import cucumber.api.event.TestSourceRead;
 import cucumber.api.event.TestStepFinished;
 import cucumber.api.event.TestStepStarted;
 import cucumber.api.event.WriteEvent;
-import cucumber.api.formatter.NiceAppendable;
 import gherkin.ast.Background;
 import gherkin.ast.Feature;
 import gherkin.ast.ScenarioDefinition;
@@ -43,7 +42,6 @@ import java.util.Map;
 
 public final class JsonFeatureFormatter implements EventListener {
     private String currentFeatureFile;
-    private List<Map<String, Object>> featureMaps = new ArrayList<Map<String, Object>>();
     private List<Map<String, Object>> currentElementsList;
     private Map<String, Object> currentElementMap;
     private Map<String, Object> currentTestCaseMap;
@@ -51,12 +49,12 @@ public final class JsonFeatureFormatter implements EventListener {
     private Map<String, Object> currentStepOrHookMap;
     private Map<String, Object> currentBeforeStepHookList = new HashMap<String, Object>();
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-   // private final NiceAppendable out;
     private final TestSourcesModel testSources = new TestSourcesModel();
 
     private File outFolder;
     private int scenarioCount;
     Map<String, Object> currentFeatureMap;
+    private String currentFeatureName;
 
 
     private EventHandler<TestSourceRead> testSourceReadHandler = new EventHandler<TestSourceRead>() {
@@ -103,17 +101,12 @@ public final class JsonFeatureFormatter implements EventListener {
     };
 
     @SuppressWarnings("WeakerAccess") // Used by PluginFactory
-    public JsonFeatureFormatter(URL out) throws IOException {
+    public JsonFeatureFormatter(URL out) {
         currentFeatureMap=null;
         outFolder = new File(out.getFile());
         if (!outFolder.exists()){
-//            outFolder.getParentFile().mkdirs();
             outFolder.mkdirs();
         }
-//        File file = new File(out.getFile()+"/report.json");
-//        file.createNewFile();
-//        Appendable app=new FileWriter(out.getFile()+"/report.json");
-//        this.out = new NiceAppendable(app);
     }
 
     @Override
@@ -135,7 +128,6 @@ public final class JsonFeatureFormatter implements EventListener {
         if (currentFeatureFile == null || !currentFeatureFile.equals(event.testCase.getUri())) {
             currentFeatureFile = event.testCase.getUri();
             currentFeatureMap = createFeatureMap(event.testCase);
-            featureMaps.add(currentFeatureMap);
             currentElementsList = (List<Map<String, Object>>) currentFeatureMap.get("elements");
         }
         currentTestCaseMap = createTestCase(event.testCase);
@@ -188,14 +180,14 @@ public final class JsonFeatureFormatter implements EventListener {
     private void finishReport() {
         if (currentFeatureMap!=null){
             BufferedWriter writer=null;
-            File file=new File(outFolder,"Scenario"+scenarioCount+".json");
+            File file=new File(outFolder,currentFeatureName+scenarioCount+".json");
             try {
 
                 writer = new BufferedWriter(new FileWriter(file));
                 writer.write(
                         (gson.toJson(currentFeatureMap)));
             } catch (Exception e){
-                e.printStackTrace();
+                throw new Error(e);
             } finally {
 
                     if (writer!=null) {
@@ -209,8 +201,6 @@ public final class JsonFeatureFormatter implements EventListener {
             }
             scenarioCount++;
         }
-//        out.append(gson.toJson(featureMaps));
-//        out.close();
     }
 
     private Map<String, Object> createFeatureMap(TestCase testCase){
@@ -222,6 +212,7 @@ public final class JsonFeatureFormatter implements EventListener {
         if (feature != null) {
             featureMap.put("keyword", feature.getKeyword());
             featureMap.put("name", feature.getName());
+            currentFeatureName=feature.getName();
             featureMap.put("description", feature.getDescription() != null ? feature.getDescription() : "");
             featureMap.put("line", feature.getLocation().getLine());
             featureMap.put("id", TestSourcesModel.convertToId(feature.getName()));
